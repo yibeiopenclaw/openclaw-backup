@@ -10,6 +10,7 @@ Usage:
   openclaw-backup inspect <file>       Show backup contents
   openclaw-backup restore <file>       Restore from backup
   openclaw-backup list                 List existing backups
+  openclaw-backup web [--port 19886]   Start web dashboard
   openclaw-backup help                 Show this help
 
 Create options:
@@ -89,6 +90,16 @@ try {
   } else if (command === "list") {
     const { listBackups } = await import("../src/list.mjs");
     listBackups();
+  } else if (command === "web") {
+    const { values } = parseArgs({
+      args: args.slice(1),
+      options: {
+        port: { type: "string", default: "19886" },
+      },
+      strict: false,
+    });
+    const { startServer } = await import("../src/server.mjs");
+    startServer(parseInt(values.port, 10));
   } else {
     console.error(`Unknown command: ${command}`);
     console.log(HELP.trim());

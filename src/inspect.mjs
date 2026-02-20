@@ -1,13 +1,12 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { validateManifest, formatManifest, formatSize } from "./manifest.mjs";
+import { validateManifest, formatManifest } from "./manifest.mjs";
 
-export function inspectBackup(archivePath) {
+export function getBackupDetails(archivePath) {
   if (!existsSync(archivePath)) {
     throw new Error(`File not found: ${archivePath}`);
   }
 
-  // Extract manifest
   let manifestJson;
   try {
     manifestJson = execSync(
@@ -21,22 +20,23 @@ export function inspectBackup(archivePath) {
   const manifest = JSON.parse(manifestJson);
   validateManifest(manifest);
 
-  console.log(formatManifest(manifest));
-  console.log("");
-
-  // List files in archive
-  const fileList = execSync(
-    `tar -tzf "${archivePath}"`,
-    { encoding: "utf8" }
-  )
+  const fileList = execSync(`tar -tzf "${archivePath}"`, { encoding: "utf8" })
     .trim()
     .split("\n")
     .filter((f) => f !== "./" && f !== "./manifest.json")
-    .map((f) => f.replace(/^\.\//, ""));
+    .map((f) => f.replace(/^\.\//, ""))
+    .filter((f) => f !== "manifest.json");
 
-  console.log(`Contents (${fileList.length} files):`);
-  for (const f of fileList) {
-    if (f === "manifest.json") continue;
+  return { manifest, files: fileList };
+}
+
+export function inspectBackup(archivePath) {
+  const { manifest, files } = getBackupDetails(archivePath);
+
+  console.log(formatManifest(manifest));
+  console.log("");
+  console.log(`Contents (${files.length} files):`);
+  for (const f of files) {
     console.log(`  ${f}`);
   }
 }

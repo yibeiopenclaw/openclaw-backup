@@ -90,13 +90,15 @@ export async function restoreBackup(archivePath, options = {}) {
 
     if (options.dryRun) {
       console.log("(dry run - no files were modified)");
-      return;
+      return { manifest, files, dryRun: true };
     }
 
-    const answer = await ask("Proceed with restore? (y/N) ");
-    if (answer.toLowerCase() !== "y") {
-      console.log("Restore cancelled.");
-      return;
+    if (!options.forceYes) {
+      const answer = await ask("Proceed with restore? (y/N) ");
+      if (answer.toLowerCase() !== "y") {
+        console.log("Restore cancelled.");
+        return { manifest, files, cancelled: true };
+      }
     }
 
     // Copy files to openclaw dir
@@ -111,6 +113,7 @@ export async function restoreBackup(archivePath, options = {}) {
 
     console.log(`\nRestored ${restored} files to ${openclawDir}`);
     console.log("\nRun 'openclaw gateway restart' to apply changes.");
+    return { manifest, files, restored };
   } finally {
     execSync(`rm -rf "${tmpDir}"`, { stdio: "pipe" });
   }

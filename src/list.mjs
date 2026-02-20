@@ -4,21 +4,50 @@ import { execSync } from "node:child_process";
 import { getBackupDir } from "./paths.mjs";
 import { formatSize } from "./manifest.mjs";
 
-export function listBackups() {
+export function getBackupList() {
   const backupDir = getBackupDir();
 
-  if (!existsSync(backupDir)) {
-    console.log("No backups found.");
-    console.log(`Backup directory: ${backupDir}`);
-    return;
-  }
+  if (!existsSync(backupDir)) return [];
 
   const files = readdirSync(backupDir)
     .filter((f) => f.startsWith("openclaw-backup-") && f.endsWith(".tar.gz"))
     .sort()
     .reverse();
 
-  if (files.length === 0) {
+  return files.map((file) => {
+    const fullPath = join(backupDir, file);
+    const stat = statSync(fullPath);
+
+    let level = "?";
+    let manifest = null;
+    try {
+      const manifestJson = execSync(
+        `tar -xzf "${fullPath}" -O ./manifest.json`,
+        { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
+      );
+      manifest = JSON.parse(manifestJson);
+      level = manifest.level || "?";
+    } catch {
+      // ignore
+    }
+
+    return {
+      file,
+      path: fullPath,
+      size: stat.size,
+      sizeFormatted: formatSize(stat.size),
+      level,
+      date: stat.mtime.toISOString(),
+      manifest,
+    };
+  });
+}
+
+export function listBackups() {
+  const backupDir = getBackupDir();
+  const backups = getBackupList();
+
+  if (backups.length === 0) {
     console.log("No backups found.");
     console.log(`Backup directory: ${backupDir}`);
     return;
@@ -26,28 +55,12 @@ export function listBackups() {
 
   console.log(`Backups in ${backupDir}:\n`);
 
-  for (const file of files) {
-    const fullPath = join(backupDir, file);
-    const stat = statSync(fullPath);
-
-    // Try to read manifest for level info
-    let level = "?";
-    try {
-      const manifestJson = execSync(
-        `tar -xzf "${fullPath}" -O ./manifest.json`,
-        { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
-      );
-      const manifest = JSON.parse(manifestJson);
-      level = manifest.level || "?";
-    } catch {
-      // ignore
-    }
-
-    const date = stat.mtime.toISOString().replace("T", " ").slice(0, 19);
+  for (const b of backups) {
+    const date = b.date.replace("T", " ").slice(0, 19);
     console.log(
-      `  ${file}  ${formatSize(stat.size).padStart(10)}  ${level.padEnd(10)}  ${date}`
+      `  ${b.file}  ${b.sizeFormatted.padStart(10)}  ${b.level.padEnd(10)}  ${date}`
     );
   }
 
-  console.log(`\n${files.length} backup(s) total`);
+  console.log(`\n${backups.length} backup(s) total`);
 }
