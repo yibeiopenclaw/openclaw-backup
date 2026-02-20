@@ -24,11 +24,16 @@ export function createBackup(options = {}) {
   console.log(`Found ${files.length} files (${formatSize(totalSize)})`);
 
   // Create temp dir for staging
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace("T", "T")
-    .slice(0, 15);
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const timestamp =
+    now.getFullYear() +
+    pad(now.getMonth() + 1) +
+    pad(now.getDate()) +
+    "T" +
+    pad(now.getHours()) +
+    pad(now.getMinutes()) +
+    pad(now.getSeconds());
   const archiveName = `openclaw-backup-${timestamp}.tar.gz`;
   const archivePath = join(backupDir, archiveName);
 
