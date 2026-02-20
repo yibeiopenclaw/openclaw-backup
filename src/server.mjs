@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { join } from "node:path";
-import { unlinkSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { unlinkSync, writeFileSync, readFileSync, mkdirSync, existsSync } from "node:fs";
 import { exec } from "node:child_process";
 import { platform } from "node:os";
 import { getBackupDir } from "./paths.mjs";
@@ -68,6 +68,9 @@ export function startServer(port = 19886) {
       // Create backup
       if (method === "POST" && path === "/api/backups") {
         const archivePath = createBackup();
+        if (archivePath === "skipped") {
+          return json(res, { skipped: true, message: "No changes since last backup" });
+        }
         if (!archivePath) {
           return json(res, { error: "No files to backup" }, 400);
         }
@@ -118,6 +121,15 @@ export function startServer(port = 19886) {
         const fullPath = join(getBackupDir(), body.file);
         unlinkSync(fullPath);
         return json(res, { deleted: body.file });
+      }
+
+      // Get last check status
+      if (method === "GET" && path === "/api/last-check") {
+        const checkPath = join(getBackupDir(), "last-check.json");
+        if (existsSync(checkPath)) {
+          return json(res, JSON.parse(readFileSync(checkPath, "utf8")));
+        }
+        return json(res, { time: null, result: null });
       }
 
       // Get schedule

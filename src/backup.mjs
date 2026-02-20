@@ -2,7 +2,13 @@ import { mkdirSync, existsSync, writeFileSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { execSync } from "node:child_process";
 import { getOpenclawDir, getBackupDir, getFilesToBackup } from "./paths.mjs";
-import { createManifest, formatManifest, formatSize } from "./manifest.mjs";
+import { createManifest, formatManifest, formatSize, computeContentHash } from "./manifest.mjs";
+import { getBackupList } from "./list.mjs";
+
+function writeLastCheck(backupDir, result, file) {
+  const data = { time: new Date().toISOString(), result, file: file || null };
+  writeFileSync(join(backupDir, "last-check.json"), JSON.stringify(data));
+}
 
 export function createBackup(options = {}) {
   const openclawDir = getOpenclawDir();
@@ -22,6 +28,15 @@ export function createBackup(options = {}) {
 
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
   console.log(`Found ${files.length} files (${formatSize(totalSize)})`);
+
+  // Check if content has changed since last backup
+  const contentHash = computeContentHash(files, openclawDir);
+  const existing = getBackupList();
+  if (existing.length > 0 && existing[0].manifest && existing[0].manifest.contentHash === contentHash) {
+    console.log("No changes since last backup. Skipping.");
+    writeLastCheck(backupDir, "skipped");
+    return "skipped";
+  }
 
   // Create temp dir for staging
   const now = new Date();
@@ -52,7 +67,7 @@ export function createBackup(options = {}) {
     }
 
     // Generate manifest (without checksum first)
-    const manifest = createManifest(files, null);
+    const manifest = createManifest(files, null, contentHash);
     writeFileSync(
       join(tmpDir, "data", "manifest.json"),
       JSON.stringify(manifest, null, 2)
@@ -65,7 +80,7 @@ export function createBackup(options = {}) {
     );
 
     // Update manifest with checksum
-    const finalManifest = createManifest(files, archivePath);
+    const finalManifest = createManifest(files, archivePath, contentHash);
     // Rewrite manifest into archive is complex, store it alongside
     writeFileSync(
       join(tmpDir, "data", "manifest.json"),
@@ -81,6 +96,7 @@ export function createBackup(options = {}) {
     console.log("");
     console.log(formatManifest(finalManifest));
 
+    writeLastCheck(backupDir, "created", archiveName);
     return archivePath;
   } finally {
     // Cleanup staging dir

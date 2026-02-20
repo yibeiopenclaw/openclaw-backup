@@ -85,6 +85,7 @@ export function getHtml() {
       <option value="weekly">Weekly (Sunday 03:00)</option>
     </select>
     <span class="schedule-status" id="sched-status">Loading...</span>
+    <span class="schedule-status" id="last-check"></span>
   </div>
 
   <div id="backup-list"></div>
@@ -141,6 +142,21 @@ async function loadSchedule() {
   } catch (e) {
     document.getElementById('sched-status').textContent = 'Error';
   }
+}
+
+async function loadLastCheck() {
+  try {
+    const res = await fetch('/api/last-check');
+    const data = await res.json();
+    const el = document.getElementById('last-check');
+    if (!data.time) { el.textContent = ''; return; }
+    const time = localDate(data.time);
+    if (data.result === 'skipped') {
+      el.textContent = 'Last check: ' + time + ' (no changes)';
+    } else {
+      el.textContent = 'Last backup: ' + time;
+    }
+  } catch {}
 }
 
 async function updateSchedule(enabled, frequency) {
@@ -209,8 +225,10 @@ async function createBackup() {
     const res = await fetch('/api/backups', { method: 'POST' });
     const data = await res.json();
     if (data.error) { log('Error: ' + data.error); return; }
+    if (data.skipped) { log(data.message); loadLastCheck(); return; }
     log('Backup created: ' + data.file);
     refresh();
+    loadLastCheck();
   } catch (e) {
     log('Error: ' + e.message);
   }
@@ -354,6 +372,7 @@ function esc(s) {
 
 refresh();
 loadSchedule();
+loadLastCheck();
 </script>
 </body>
 </html>`;

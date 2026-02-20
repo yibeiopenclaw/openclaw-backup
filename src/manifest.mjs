@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { hostname, platform } from "node:os";
 import { execSync } from "node:child_process";
 
@@ -14,7 +15,16 @@ function getOpenclawVersion() {
   }
 }
 
-export function createManifest(files, archivePath) {
+export function computeContentHash(files, baseDir) {
+  const hash = createHash("sha256");
+  for (const f of files.slice().sort((a, b) => a.relative.localeCompare(b.relative))) {
+    hash.update(f.relative);
+    hash.update(readFileSync(join(baseDir, f.relative)));
+  }
+  return hash.digest("hex");
+}
+
+export function createManifest(files, archivePath, contentHash) {
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
 
   let checksum = null;
@@ -33,6 +43,7 @@ export function createManifest(files, archivePath) {
     files: files.length,
     totalSize,
     checksum,
+    contentHash: contentHash || null,
   };
 }
 
