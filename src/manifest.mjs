@@ -33,7 +33,6 @@ export function createManifest(files, archivePath) {
     files: files.length,
     totalSize,
     checksum,
-    encrypted: false,
   };
 }
 
@@ -57,9 +56,6 @@ export function formatManifest(manifest) {
   ];
   if (manifest.checksum) {
     lines.push(`Checksum:  ${manifest.checksum.slice(0, 20)}...`);
-  }
-  if (manifest.encrypted) {
-    lines.push(`Encrypted: yes`);
   }
   return lines.join("\n");
 }

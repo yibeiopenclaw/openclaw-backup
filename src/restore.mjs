@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, statSy
 import { join, dirname } from "node:path";
 import { execSync } from "node:child_process";
 import { createInterface } from "node:readline";
-import { getOpenclawDir } from "./paths.mjs";
+import { homedir } from "node:os";
+import { resolve } from "node:path";
 import { validateManifest, formatManifest } from "./manifest.mjs";
 
 function ask(question) {
@@ -34,7 +35,11 @@ export async function restoreBackup(archivePath, options = {}) {
     throw new Error(`File not found: ${archivePath}`);
   }
 
-  const openclawDir = getOpenclawDir();
+  const openclawDir = resolve(process.env.OPENCLAW_STATE_DIR || join(homedir(), ".openclaw"));
+  if (!existsSync(openclawDir)) {
+    mkdirSync(openclawDir, { recursive: true });
+    console.log(`Created ${openclawDir}`);
+  }
 
   // Extract to temp dir
   const tmpDir = join(dirname(archivePath), `.tmp-restore-${Date.now()}`);

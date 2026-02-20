@@ -4,6 +4,20 @@ import { execSync } from "node:child_process";
 import { getBackupDir } from "./paths.mjs";
 import { formatSize } from "./manifest.mjs";
 
+function parseDateFromFilename(filename) {
+  // openclaw-backup-20260220T062036.tar.gz → 2026-02-20T06:20:36
+  const m = filename.match(/(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+  if (m) {
+    return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
+  }
+  // fallback: older format like openclaw-backup-2026-02-20T0237.tar.gz
+  const m2 = filename.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2})(\d{2})/);
+  if (m2) {
+    return `${m2[1]}-${m2[2]}-${m2[3]}T${m2[4]}:${m2[5]}:00`;
+  }
+  return null;
+}
+
 export function getBackupList() {
   const backupDir = getBackupDir();
 
@@ -34,7 +48,7 @@ export function getBackupList() {
       path: fullPath,
       size: stat.size,
       sizeFormatted: formatSize(stat.size),
-      date: stat.mtime.toISOString(),
+      date: parseDateFromFilename(file) || stat.mtime.toISOString(),
       manifest,
     };
   });
