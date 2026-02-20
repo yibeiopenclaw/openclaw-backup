@@ -1,0 +1,13 @@
+{
+  "name": "openclaw-backup",
+  "version": "0.1.0",
+  "description": "Backup and restore tool for OpenClaw",
+  "type": "module",
+  "bin": {
+    "openclaw-backup": "./bin/cli.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
