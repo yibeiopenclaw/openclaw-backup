@@ -58,12 +58,7 @@ export function startServer(port = 19886) {
 
       // Create backup
       if (method === "POST" && path === "/api/backups") {
-        const body = await parseBody(req);
-        const level = body.level || "full";
-        const archivePath = createBackup({
-          configOnly: level === "config",
-          includeSessions: level === "sessions",
-        });
+        const archivePath = createBackup();
         if (!archivePath) {
           return json(res, { error: "No files to backup" }, 400);
         }

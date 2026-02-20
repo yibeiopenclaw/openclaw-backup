@@ -5,12 +5,6 @@ import { getOpenclawDir, getBackupDir, getFilesToBackup } from "./paths.mjs";
 import { createManifest, formatManifest, formatSize } from "./manifest.mjs";
 
 export function createBackup(options = {}) {
-  const level = options.configOnly
-    ? "config"
-    : options.includeSessions
-      ? "sessions"
-      : "full";
-
   const openclawDir = getOpenclawDir();
   const backupDir = options.output || getBackupDir();
 
@@ -18,8 +12,8 @@ export function createBackup(options = {}) {
     mkdirSync(backupDir, { recursive: true });
   }
 
-  console.log(`Scanning ${openclawDir} (level: ${level})...`);
-  const files = getFilesToBackup(level, openclawDir);
+  console.log(`Scanning ${openclawDir}...`);
+  const files = getFilesToBackup(openclawDir);
 
   if (files.length === 0) {
     console.log("No files to backup.");
@@ -53,7 +47,7 @@ export function createBackup(options = {}) {
     }
 
     // Generate manifest (without checksum first)
-    const manifest = createManifest(level, files, null);
+    const manifest = createManifest(files, null);
     writeFileSync(
       join(tmpDir, "data", "manifest.json"),
       JSON.stringify(manifest, null, 2)
@@ -66,7 +60,7 @@ export function createBackup(options = {}) {
     );
 
     // Update manifest with checksum
-    const finalManifest = createManifest(level, files, archivePath);
+    const finalManifest = createManifest(files, archivePath);
     // Rewrite manifest into archive is complex, store it alongside
     writeFileSync(
       join(tmpDir, "data", "manifest.json"),

@@ -25,10 +25,6 @@ export function getHtml() {
   th { text-align: left; padding: 10px 12px; border-bottom: 1px solid #30363d; color: #8b949e; font-size: 12px; font-weight: 500; text-transform: uppercase; }
   td { padding: 10px 12px; border-bottom: 1px solid #21262d; font-size: 13px; }
   tr:hover td { background: #161b22; }
-  .level { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
-  .level-config { background: #1f3d2b; color: #56d364; }
-  .level-full { background: #1c2d4f; color: #58a6ff; }
-  .level-sessions { background: #3d2b1f; color: #d29922; }
   .log { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; margin-top: 16px; font-family: monospace; font-size: 12px; line-height: 1.6; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
   .log:empty { display: none; }
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; }
@@ -48,9 +44,7 @@ export function getHtml() {
   <p class="subtitle">Backup and restore dashboard</p>
 
   <div class="actions">
-    <button class="btn btn-primary" onclick="createBackup('config')">Backup Config</button>
-    <button class="btn btn-primary" onclick="createBackup('full')">Backup Full</button>
-    <button class="btn btn-primary" onclick="createBackup('sessions')">Backup + Sessions</button>
+    <button class="btn btn-primary" onclick="createBackup()">Create Backup</button>
     <button class="btn" onclick="refresh()">Refresh</button>
   </div>
 
@@ -97,13 +91,11 @@ async function refresh() {
       listEl.innerHTML = '<div class="empty">No backups yet. Create one above.</div>';
       return;
     }
-    let html = '<table><thead><tr><th>File</th><th>Level</th><th>Size</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
+    let html = '<table><thead><tr><th>File</th><th>Size</th><th>Date</th><th>Actions</th></tr></thead><tbody>';
     for (const b of backups) {
       const date = b.date.replace('T', ' ').slice(0, 19);
-      const levelClass = 'level-' + b.level;
       html += '<tr>';
       html += '<td style="font-family:monospace;font-size:12px">' + esc(b.file) + '</td>';
-      html += '<td><span class="level ' + levelClass + '">' + esc(b.level) + '</span></td>';
       html += '<td>' + esc(b.sizeFormatted) + '</td>';
       html += '<td>' + esc(date) + '</td>';
       html += '<td>';
@@ -118,13 +110,11 @@ async function refresh() {
   }
 }
 
-async function createBackup(level) {
-  log('Creating ' + level + ' backup...');
+async function createBackup() {
+  log('Creating backup...');
   try {
     const res = await fetch('/api/backups', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ level })
     });
     const data = await res.json();
     if (data.error) { log('Error: ' + data.error); return; }
@@ -142,7 +132,6 @@ async function inspect(file) {
     if (data.error) { log('Error: ' + data.error); return; }
     const m = data.manifest;
     let html = '<div style="font-size:13px;line-height:1.8;margin-bottom:12px">';
-    html += '<b>Level:</b> ' + esc(m.level) + '<br>';
     html += '<b>Created:</b> ' + esc(m.createdAt) + '<br>';
     html += '<b>OpenClaw:</b> ' + esc(m.openclawVersion) + '<br>';
     html += '<b>Platform:</b> ' + esc(m.platform) + ' (' + esc(m.hostname) + ')<br>';

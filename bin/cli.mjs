@@ -14,13 +14,10 @@ Usage:
   openclaw-backup help                 Show this help
 
 Create options:
-  --config-only        Only backup configuration files
-  --include-sessions   Include conversation history
   -o, --output <dir>   Output directory (default: ~/.openclaw-backups/)
 
 Restore options:
   --dry-run            Preview restore without writing files
-  --config-only        Only restore configuration files
 `;
 
 const args = process.argv.slice(2);
@@ -46,8 +43,6 @@ try {
     const { values } = parseArgs({
       args: args.slice(1),
       options: {
-        "config-only": { type: "boolean", default: false },
-        "include-sessions": { type: "boolean", default: false },
         output: { type: "string", short: "o" },
       },
       strict: false,
@@ -55,8 +50,6 @@ try {
 
     const { createBackup } = await import("../src/backup.mjs");
     createBackup({
-      configOnly: values["config-only"],
-      includeSessions: values["include-sessions"],
       output: values.output || undefined,
     });
   } else if (command === "inspect") {
@@ -77,7 +70,6 @@ try {
       args: args.slice(2),
       options: {
         "dry-run": { type: "boolean", default: false },
-        "config-only": { type: "boolean", default: false },
       },
       strict: false,
     });
@@ -85,7 +77,6 @@ try {
     const { restoreBackup } = await import("../src/restore.mjs");
     await restoreBackup(file, {
       dryRun: values["dry-run"],
-      configOnly: values["config-only"],
     });
   } else if (command === "list") {
     const { listBackups } = await import("../src/list.mjs");

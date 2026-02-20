@@ -60,25 +60,6 @@ export async function restoreBackup(archivePath, options = {}) {
       (f) => f !== "manifest.json"
     );
 
-    if (options.configOnly) {
-      // Filter to config-level files only
-      const configPrefixes = [
-        "openclaw.json",
-        "credentials/",
-        "cron/",
-        "devices/",
-        "identity/",
-        "agents/",
-      ];
-      const filtered = files.filter((f) =>
-        configPrefixes.some(
-          (p) => f === p || f.startsWith(p)
-        ) && !f.includes("/sessions/")
-      );
-      files.length = 0;
-      files.push(...filtered);
-    }
-
     console.log(`Will restore ${files.length} files to ${openclawDir}:\n`);
     for (const f of files.slice(0, 20)) {
       console.log(`  ${f}`);

@@ -24,44 +24,7 @@ function shouldSkip(name) {
   return SKIP_PATTERNS.some((p) => p.test(name));
 }
 
-// Config level: core configuration files only
-const CONFIG_PATHS = [
-  "openclaw.json",
-  "credentials",
-  "cron",
-  "devices",
-  "identity",
-];
-
-// Agents config (under agents/*/agent/, not sessions)
-function getAgentConfigPaths(openclawDir) {
-  const agentsDir = join(openclawDir, "agents");
-  if (!existsSync(agentsDir)) return [];
-  const paths = [];
-  for (const name of readdirSync(agentsDir)) {
-    const agentDir = join(agentsDir, name, "agent");
-    if (existsSync(agentDir) && statSync(agentDir).isDirectory()) {
-      paths.push(join("agents", name, "agent"));
-    }
-  }
-  return paths;
-}
-
-// Session paths (under agents/*/sessions/)
-function getSessionPaths(openclawDir) {
-  const agentsDir = join(openclawDir, "agents");
-  if (!existsSync(agentsDir)) return [];
-  const paths = [];
-  for (const name of readdirSync(agentsDir)) {
-    const sessDir = join(agentsDir, name, "sessions");
-    if (existsSync(sessDir) && statSync(sessDir).isDirectory()) {
-      paths.push(join("agents", name, "sessions"));
-    }
-  }
-  return paths;
-}
-
-// Top-level dirs/files to always skip
+// Top-level dirs/files to always skip (cache/regenerable)
 const SKIP_TOPLEVEL = new Set([
   "browser",
   "media",
@@ -72,17 +35,14 @@ const SKIP_TOPLEVEL = new Set([
   "update-check.json",
 ]);
 
-export function getPathsForLevel(level, openclawDir) {
-  const paths = [...CONFIG_PATHS, ...getAgentConfigPaths(openclawDir)];
-
-  if (level === "full" || level === "sessions") {
-    paths.push("workspace");
+// Get all backup paths (everything except skipped dirs)
+function getAllPaths(openclawDir) {
+  const paths = [];
+  for (const entry of readdirSync(openclawDir)) {
+    if (shouldSkip(entry)) continue;
+    if (SKIP_TOPLEVEL.has(entry)) continue;
+    paths.push(entry);
   }
-
-  if (level === "sessions") {
-    paths.push(...getSessionPaths(openclawDir));
-  }
-
   return paths;
 }
 
@@ -107,9 +67,9 @@ export function collectFiles(baseDir, relativePath) {
   return files;
 }
 
-// Get all files to backup for a given level
-export function getFilesToBackup(level, openclawDir) {
-  const paths = getPathsForLevel(level, openclawDir);
+// Get all files to backup
+export function getFilesToBackup(openclawDir) {
+  const paths = getAllPaths(openclawDir);
   const files = [];
   for (const p of paths) {
     files.push(...collectFiles(openclawDir, p));

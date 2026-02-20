@@ -18,7 +18,6 @@ export function getBackupList() {
     const fullPath = join(backupDir, file);
     const stat = statSync(fullPath);
 
-    let level = "?";
     let manifest = null;
     try {
       const manifestJson = execSync(
@@ -26,7 +25,6 @@ export function getBackupList() {
         { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
       );
       manifest = JSON.parse(manifestJson);
-      level = manifest.level || "?";
     } catch {
       // ignore
     }
@@ -36,7 +34,6 @@ export function getBackupList() {
       path: fullPath,
       size: stat.size,
       sizeFormatted: formatSize(stat.size),
-      level,
       date: stat.mtime.toISOString(),
       manifest,
     };
@@ -58,7 +55,7 @@ export function listBackups() {
   for (const b of backups) {
     const date = b.date.replace("T", " ").slice(0, 19);
     console.log(
-      `  ${b.file}  ${b.sizeFormatted.padStart(10)}  ${b.level.padEnd(10)}  ${date}`
+      `  ${b.file}  ${b.sizeFormatted.padStart(10)}  ${date}`
     );
   }
 

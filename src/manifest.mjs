@@ -14,7 +14,7 @@ function getOpenclawVersion() {
   }
 }
 
-export function createManifest(level, files, archivePath) {
+export function createManifest(files, archivePath) {
   const totalSize = files.reduce((sum, f) => sum + f.size, 0);
 
   let checksum = null;
@@ -28,18 +28,12 @@ export function createManifest(level, files, archivePath) {
     version: MANIFEST_VERSION,
     createdAt: new Date().toISOString(),
     openclawVersion: getOpenclawVersion(),
-    level,
     platform: platform(),
     hostname: hostname(),
     files: files.length,
     totalSize,
     checksum,
     encrypted: false,
-    contents: {
-      config: true,
-      workspace: level === "full" || level === "sessions",
-      sessions: level === "sessions",
-    },
   };
 }
 
@@ -50,15 +44,11 @@ export function validateManifest(manifest) {
   if (!manifest.createdAt) {
     throw new Error("Invalid manifest: missing createdAt");
   }
-  if (!manifest.level) {
-    throw new Error("Invalid manifest: missing level");
-  }
   return true;
 }
 
 export function formatManifest(manifest) {
   const lines = [
-    `Backup:    ${manifest.level} level`,
     `Created:   ${manifest.createdAt}`,
     `OpenClaw:  ${manifest.openclawVersion}`,
     `Platform:  ${manifest.platform} (${manifest.hostname})`,
